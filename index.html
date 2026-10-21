@@ -707,7 +707,8 @@ function accountCard(u, kind){
     actions = `<button class="mini ok" onclick="saveRoles('${u.id}')">Guardar cambios</button>
                <button class="mini danger" onclick="rejectUser('${u.id}')">Retirar acceso</button>`;
   } else {
-    actions = `<button class="mini" onclick="reconsiderUser('${u.id}')">Volver a pendiente</button>`;
+        actions = `<button class="mini" onclick="reconsiderUser('${u.id}')">Volver a pendiente</button>
+               <button class="mini danger" onclick="deleteUser('${u.id}')">Eliminar</button>`;
   }
   return `
     <div class="entry">
@@ -770,6 +771,13 @@ async function rejectUser(uid){
 }
 async function reconsiderUser(uid){
   await updateUser(uid, {estado:'pendiente', permisos:{}});
+}
+async function deleteUser(uid){
+  if(!confirm('¿Eliminar esta solicitud de la lista? Si la persona vuelve a entrar con ese correo, aparecerá otra vez como pendiente.')) return;
+  try{
+    await db.collection('users').doc(uid).delete();
+    switchTab('cuentas');
+  }catch(e){ alert('No se pudo eliminar.'); }
 }
 async function updateUser(uid, data){
   try{
