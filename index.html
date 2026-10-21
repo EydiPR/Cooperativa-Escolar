@@ -8,10 +8,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap');
 
 :root{
-  --bg:#141514; --bg-panel:#ffffff; --ink:#000000; --ink-soft:#695e5e;
-  --navy:#b8bec2; --sage:#4C7A6B; --sage-dark:#375A4F;
-  --ochre:#B5772E; --ochre-dark:#8E5D22; --line:#000000; --white:#FBFAF6;
-  --danger:#A23B2E; --radius:8px;
+  --bg:#141514; 
+  --bg-panel:#1e1f1e; 
+  --ink:#F1F5F9; 
+  --ink-soft:#94A3B8;
+  --navy:#93C5FD; 
+  --sage:#34D399; 
+  --sage-dark:#059669;
+  --ochre:#FBBF24; 
+  --ochre-dark:#D97706; 
+  --line:rgba(255, 255, 255, 0.08);
+  --white:#1D1F1D; 
+  --danger:#F87171; 
+  --radius:12px;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -27,12 +36,34 @@ header.top p.lead{max-width:520px;margin:20px auto 0;color:var(--ink-soft);font-
 
 .mailboxes{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:56px;}
 @media (max-width:640px){.mailboxes{grid-template-columns:1fr;}}
-.mailbox{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
-.mailbox .flap{width:100%;text-align:left;border:none;cursor:pointer;padding:26px 24px;background:var(--white);display:flex;flex-direction:column;gap:6px;transition:background .15s ease;}
-.mailbox .flap:hover{background:var(--bg-panel);}
+.mailbox{
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.mailbox:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mailbox .flap{
+  background: transparent;
+}
+.mailbox .flap:hover{
+  background: rgba(255, 255, 255, 0.02);
+}
 .mailbox .flap:focus-visible{outline:2px solid var(--navy);outline-offset:-2px;}
-.mailbox.sugerencias .flap .tag{color:var(--sage-dark);}
-.mailbox.problemas .flap .tag{color:var(--ochre-dark);}
+.mailbox.sugerencias .identity-toggle label:has(input:checked){
+  border-color: var(--sage);
+  background: rgba(52, 211, 153, 0.08);
+}
+.mailbox.problemas .identity-toggle label:has(input:checked){
+  border-color: var(--ochre);
+  background: rgba(251, 191, 36, 0.08);
+}
 .flap .tag{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
 .flap h2{font-size:1.5rem;}
 .flap .desc{color:var(--ink-soft);font-size:.92rem;margin-top:2px;}
@@ -45,18 +76,33 @@ header.top p.lead{max-width:520px;margin:20px auto 0;color:var(--ink-soft);font-
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:var(--ink);}
 .identity-toggle{display:flex;gap:8px;margin-bottom:16px;}
-.identity-toggle label{flex:1;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;font-size:.85rem;text-align:center;cursor:pointer;user-select:none;}
+.identity-toggle label{
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #121312;
+  transition: all 0.15s ease;
 .identity-toggle input{position:absolute;opacity:0;pointer-events:none;}
 .identity-toggle input:checked + span{font-weight:700;}
 .mailbox.sugerencias .identity-toggle label:has(input:checked){border-color:var(--sage);background:#EEF3F0;}
 .mailbox.problemas .identity-toggle label:has(input:checked){border-color:var(--ochre);background:#F5EEE3;}
 
-input[type=text],input[type=email],input[type=password],textarea,select{
-  width:100%;font-family:inherit;font-size:.95rem;padding:10px 12px;border:1px solid var(--line);
-  border-radius:var(--radius);background:var(--white);color:var(--ink);
+input[type=text], input[type=email], input[type=password], textarea, select{
+  width:100%;
+  font-family:inherit;
+  font-size:.95rem;
+  padding:12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #121312;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 textarea{resize:vertical;min-height:100px;}
-input:focus,textarea:focus,select:focus{outline:2px solid var(--navy);outline-offset:0;}
+input:focus, textarea:focus, select:focus{
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15);
+}
 
 .named-fields{display:none;gap:12px;}
 .named-fields.show{display:grid;grid-template-columns:1fr 1fr;}
