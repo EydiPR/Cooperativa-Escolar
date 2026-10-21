@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buzón Digital</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#EFEAE0; --bg-panel:#E4DECF; --ink:#20241F; --ink-soft:#4B5148;
+  --navy:#1B3A4B; --sage:#4C7A6B; --sage-dark:#375A4F;
+  --ochre:#B5772E; --ochre-dark:#8E5D22; --line:#C9C1AC; --white:#FBFAF6;
+  --danger:#A23B2E; --radius:6px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:'Public Sans',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0;color:var(--navy);}
+button{font-family:inherit;}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px 80px;}
+
+header.top{padding:56px 24px 40px;text-align:center;border-bottom:1px solid var(--line);margin-bottom:48px;}
+header.top h1{font-size:clamp(2.1rem,5vw,3rem);letter-spacing:-0.01em;}
+header.top .school-name{font-size:1.05rem;color:var(--ink-soft);margin-top:8px;}
+header.top p.lead{max-width:520px;margin:20px auto 0;color:var(--ink-soft);font-size:1rem;}
+
+.mailboxes{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:56px;}
+@media (max-width:640px){.mailboxes{grid-template-columns:1fr;}}
+.mailbox{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+.mailbox .flap{width:100%;text-align:left;border:none;cursor:pointer;padding:26px 24px;background:var(--white);display:flex;flex-direction:column;gap:6px;transition:background .15s ease;}
+.mailbox .flap:hover{background:var(--bg-panel);}
+.mailbox .flap:focus-visible{outline:2px solid var(--navy);outline-offset:-2px;}
+.mailbox.sugerencias .flap .tag{color:var(--sage-dark);}
+.mailbox.problemas .flap .tag{color:var(--ochre-dark);}
+.flap .tag{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+.flap h2{font-size:1.5rem;}
+.flap .desc{color:var(--ink-soft);font-size:.92rem;margin-top:2px;}
+.flap .chevron{align-self:flex-end;margin-top:-28px;font-size:1.2rem;color:var(--ink-soft);transition:transform .2s ease;}
+.mailbox.open .flap .chevron{transform:rotate(180deg);}
+.mailbox .panel{max-height:0;overflow:hidden;transition:max-height .28s ease;border-top:1px solid transparent;}
+.mailbox.open .panel{max-height:900px;border-top:1px solid var(--line);}
+.panel-inner{padding:22px 24px 26px;}
+
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:var(--ink);}
+.identity-toggle{display:flex;gap:8px;margin-bottom:16px;}
+.identity-toggle label{flex:1;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;font-size:.85rem;text-align:center;cursor:pointer;user-select:none;}
+.identity-toggle input{position:absolute;opacity:0;pointer-events:none;}
+.identity-toggle input:checked + span{font-weight:700;}
+.mailbox.sugerencias .identity-toggle label:has(input:checked){border-color:var(--sage);background:#EEF3F0;}
+.mailbox.problemas .identity-toggle label:has(input:checked){border-color:var(--ochre);background:#F5EEE3;}
+
+input[type=text],input[type=email],input[type=password],textarea,select{
+  width:100%;font-family:inherit;font-size:.95rem;padding:10px 12px;border:1px solid var(--line);
+  border-radius:var(--radius);background:var(--white);color:var(--ink);
+}
+textarea{resize:vertical;min-height:100px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--navy);outline-offset:0;}
+
+.named-fields{display:none;gap:12px;}
+.named-fields.show{display:grid;grid-template-columns:1fr 1fr;}
+@media (max-width:480px){.named-fields.show{grid-template-columns:1fr;}}
+
+.submit-row{display:flex;align-items:center;gap:14px;margin-top:18px;}
+.btn{border:none;border-radius:var(--radius);padding:11px 20px;font-size:.9rem;font-weight:600;cursor:pointer;color:var(--white);}
+.mailbox.sugerencias .btn{background:var(--sage);}
+.mailbox.sugerencias .btn:hover{background:var(--sage-dark);}
+.mailbox.problemas .btn{background:var(--ochre);}
+.mailbox.problemas .btn:hover{background:var(--ochre-dark);}
+.btn:disabled{opacity:.6;cursor:default;}
+.status-msg{font-size:.85rem;color:var(--ink-soft);}
+.status-msg.error{color:var(--danger);}
+
+.confirm{padding:22px 24px 26px;display:none;}
+.confirm.show{display:block;}
+.confirm .check{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--white);font-size:1rem;margin-bottom:12px;}
+.mailbox.sugerencias .confirm .check{background:var(--sage);}
+.mailbox.problemas .confirm .check{background:var(--ochre);}
+.confirm p{margin:0 0 14px;color:var(--ink-soft);font-size:.92rem;}
+.confirm button{background:none;border:1px solid var(--line);border-radius:var(--radius);padding:8px 14px;font-size:.85rem;cursor:pointer;color:var(--ink);}
+
+/* ---------- Staff portal ---------- */
+.staff-toggle{text-align:center;margin-bottom:24px;}
+.staff-toggle button{background:none;border:none;color:var(--ink-soft);font-size:.85rem;text-decoration:underline;cursor:pointer;padding:6px;}
+#staff-area{display:none;margin-bottom:40px;}
+#staff-area.show{display:block;}
+
+.card{max-width:420px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:24px;}
+.card h3{font-size:1.2rem;margin-bottom:6px;}
+.card .hint{font-size:.82rem;color:var(--ink-soft);margin-bottom:16px;}
+.card p{font-size:.92rem;color:var(--ink-soft);margin:0 0 14px;}
+.auth-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.auth-tabs button{flex:1;border:1px solid var(--line);background:var(--white);border-radius:var(--radius);padding:9px;font-size:.85rem;cursor:pointer;color:var(--ink-soft);}
+.auth-tabs button.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.btn-solid{display:block;width:100%;background:var(--navy);color:var(--white);border:none;border-radius:var(--radius);padding:11px;font-size:.9rem;font-weight:600;cursor:pointer;}
+.btn-solid:hover{background:#142C39;}
+.btn-solid:disabled{opacity:.6;cursor:default;}
+.btn-ghost{display:block;width:100%;background:none;color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);padding:10px;font-size:.88rem;cursor:pointer;margin-top:10px;}
+.btn-ghost:hover{background:var(--bg-panel);}
+.linkish{background:none;border:none;color:var(--ink-soft);text-decoration:underline;font-size:.8rem;cursor:pointer;padding:0;margin-top:12px;display:block;}
+.divider{text-align:center;font-size:.75rem;color:var(--ink-soft);margin:14px 0 4px;}
+.notice{background:#F5EEE3;border:1px solid var(--ochre);border-radius:var(--radius);padding:10px 12px;font-size:.82rem;color:var(--ochre-dark);margin-bottom:14px;}
+
+.dash-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex-wrap:wrap;gap:8px;}
+.dash-head h2{font-size:1.4rem;}
+.dash-sub{font-size:.82rem;color:var(--ink-soft);margin-bottom:18px;}
+.lock-btn{background:none;border:1px solid var(--line);border-radius:var(--radius);padding:6px 12px;font-size:.8rem;cursor:pointer;color:var(--ink-soft);}
+.staff-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.staff-tabs button{flex:1;min-width:110px;border:1px solid var(--line);background:var(--white);border-radius:var(--radius);padding:9px;font-size:.85rem;cursor:pointer;color:var(--ink-soft);}
+.staff-tabs button.active{color:var(--white);border-color:transparent;background:var(--navy);}
+.staff-tabs button.active.t-sugerencias{background:var(--sage);}
+.staff-tabs button.active.t-problemas{background:var(--ochre);}
+.badge-count{display:inline-block;background:var(--danger);color:var(--white);border-radius:10px;font-size:.7rem;padding:0 6px;margin-left:4px;}
+
+.entry{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+.entry.reviewed{opacity:.55;}
+.entry .meta{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--ink-soft);margin-bottom:8px;gap:10px;flex-wrap:wrap;}
+.entry .who{font-weight:600;color:var(--ink);}
+.entry p.msg{margin:0 0 10px;font-size:.92rem;white-space:pre-wrap;}
+.entry .row-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.entry label{font-size:.78rem;color:var(--ink-soft);display:flex;align-items:center;gap:6px;cursor:pointer;}
+.mini{background:none;border:1px solid var(--line);border-radius:var(--radius);padding:5px 10px;font-size:.78rem;cursor:pointer;color:var(--ink);}
+.mini.danger{color:var(--danger);border-color:var(--danger);}
+.mini.ok{background:var(--sage);color:var(--white);border-color:var(--sage);}
+.empty-note{color:var(--ink-soft);font-size:.88rem;text-align:center;padding:20px 0;}
+
+.section-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:22px 0 10px;}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0;}
+@media (max-width:480px){.role-grid{grid-template-columns:1fr;}}
+.role-grid label{font-size:.75rem;font-weight:600;margin-bottom:4px;display:block;}
+.role-grid select{padding:7px 8px;font-size:.85rem;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+footer.note{text-align:center;font-size:.75rem;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:20px;margin-top:12px;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Buzón Digital</h1>
+  <div class="school-name">Vocacional Ana Delia Flores Santana</div>
+  <p class="lead">Comparte tus ideas o reporta un problema. Puedes escribir con un apodo o con tu nombre y correo — tú decides.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="mailboxes">
+    <!-- SUGERENCIAS -->
+    <div class="mailbox sugerencias" id="box-sugerencias">
+      <button class="flap" aria-expanded="false" onclick="toggleBox('sugerencias')">
+        <span class="tag">Buzón</span>
+        <h2>Sugerencias</h2>
+        <span class="desc">Ideas para mejorar la escuela.</span>
+        <span class="chevron">⌄</span>
+      </button>
+      <div class="panel">
+        <div class="panel-inner" id="form-sugerencias">
+          <form onsubmit="return submitEntry(event,'sugerencias')">
+            <div class="identity-toggle" role="radiogroup">
+              <label><input type="radio" name="identidad-sugerencias" value="anonimo" checked onchange="toggleIdentity('sugerencias')"><span>Anónimo (apodo)</span></label>
+              <label><input type="radio" name="identidad-sugerencias" value="cuenta" onchange="toggleIdentity('sugerencias')"><span>Con mi nombre</span></label>
+            </div>
+            <div class="field" id="nick-field-sugerencias">
+              <label for="nick-sugerencias">Apodo</label>
+              <input type="text" id="nick-sugerencias" placeholder="Ej. Águila23" maxlength="40">
+            </div>
+            <div class="field named-fields" id="named-fields-sugerencias">
+              <div><label for="name-sugerencias">Nombre</label><input type="text" id="name-sugerencias" maxlength="60"></div>
+              <div><label for="email-sugerencias">Correo</label><input type="email" id="email-sugerencias" placeholder="nombre@escuela.pr.gov"></div>
+            </div>
+            <div class="field">
+              <label for="msg-sugerencias">Tu sugerencia</label>
+              <textarea id="msg-sugerencias" required maxlength="2000" placeholder="¿Qué te gustaría ver mejorado?"></textarea>
+            </div>
+            <div class="submit-row">
+              <button type="submit" class="btn">Enviar sugerencia</button>
+              <span class="status-msg" id="status-sugerencias"></span>
+            </div>
+          </form>
+        </div>
+        <div class="confirm" id="confirm-sugerencias">
+          <div class="check">✓</div>
+          <p>Gracias — tu sugerencia llegó al buzón.</p>
+          <button onclick="resetBox('sugerencias')">Enviar otra</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROBLEMAS -->
+    <div class="mailbox problemas" id="box-problemas">
+      <button class="flap" aria-expanded="false" onclick="toggleBox('problemas')">
+        <span class="tag">Buzón</span>
+        <h2>Problemas</h2>
+        <span class="desc">Algo no está funcionando bien.</span>
+        <span class="chevron">⌄</span>
+      </button>
+      <div class="panel">
+        <div class="panel-inner" id="form-problemas">
+          <form onsubmit="return submitEntry(event,'problemas')">
+            <div class="identity-toggle" role="radiogroup">
+              <label><input type="radio" name="identidad-problemas" value="anonimo" checked onchange="toggleIdentity('problemas')"><span>Anónimo (apodo)</span></label>
+              <label><input type="radio" name="identidad-problemas" value="cuenta" onchange="toggleIdentity('problemas')"><span>Con mi nombre</span></label>
+            </div>
+            <div class="field" id="nick-field-problemas">
+              <label for="nick-problemas">Apodo</label>
+              <input type="text" id="nick-problemas" placeholder="Ej. Águila23" maxlength="40">
+            </div>
+            <div class="field named-fields" id="named-fields-problemas">
+              <div><label for="name-problemas">Nombre</label><input type="text" id="name-problemas" maxlength="60"></div>
+              <div><label for="email-problemas">Correo</label><input type="email" id="email-problemas" placeholder="nombre@escuela.pr.gov"></div>
+            </div>
+            <div class="field">
+              <label for="msg-problemas">Describe el problema</label>
+              <textarea id="msg-problemas" required maxlength="2000" placeholder="¿Qué está pasando y dónde?"></textarea>
+            </div>
+            <div class="submit-row">
+              <button type="submit" class="btn">Enviar problema</button>
+              <span class="status-msg" id="status-problemas"></span>
+            </div>
+          </form>
+        </div>
+        <div class="confirm" id="confirm-problemas">
+          <div class="check">✓</div>
+          <p>Gracias — tu reporte llegó al buzón.</p>
+          <button onclick="resetBox('problemas')">Enviar otro</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="staff-toggle" id="staff-toggle">
+    <button onclick="showGate()">Acceso del personal escolar</button>
+  </div>
+
+  <!-- ================= STAFF PORTAL ================= -->
+  <section id="staff-area">
+
+    <!-- Login / Register -->
+    <div class="card" id="p-auth">
+      <h3>Portal del personal</h3>
+      <div class="hint">Entra o crea una cuenta. Las cuentas nuevas necesitan confirmar el correo y ser aprobadas por el administrador.</div>
+      <div class="auth-tabs">
+        <button type="button" id="mode-login" class="active" onclick="setAuthMode('login')">Entrar</button>
+        <button type="button" id="mode-register" onclick="setAuthMode('register')">Crear cuenta</button>
+      </div>
+      <form onsubmit="return submitAuth(event)">
+        <div class="field" id="f-nombre" style="display:none;">
+          <label for="a-nombre">Nombre completo</label>
+          <input type="text" id="a-nombre" maxlength="60" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="a-email">Correo</label>
+          <input type="email" id="a-email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="a-pass">Contraseña</label>
+          <input type="password" id="a-pass" required minlength="8" autocomplete="current-password">
+        </div>
+        <div class="field" id="f-pass2" style="display:none;">
+          <label for="a-pass2">Repite la contraseña</label>
+          <input type="password" id="a-pass2" minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn-solid" id="auth-submit">Entrar</button>
+      </form>
+      <div class="status-msg error" id="auth-error" style="margin-top:10px;"></div>
+      <div class="status-msg" id="auth-info" style="margin-top:10px;"></div>
+      <button class="linkish" type="button" id="forgot-btn" onclick="forgotPassword()">Olvidé mi contraseña</button>
+      <div class="divider">— o —</div>
+      <button class="btn-ghost" type="button" onclick="googleSignIn()">Continuar con Google</button>
+    </div>
+
+    <!-- Verify email -->
+    <div class="card" id="p-verify" style="display:none;">
+      <h3>Confirma tu correo</h3>
+      <p>Enviamos un enlace de confirmación a <strong id="verify-email"></strong>. Ábrelo y luego vuelve aquí. Revisa también la carpeta de spam.</p>
+      <button class="btn-solid" onclick="checkVerified()">Ya lo confirmé</button>
+      <button class="btn-ghost" onclick="resendVerification()">Reenviar correo</button>
+      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
+      <div class="status-msg" id="verify-info" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Pending -->
+    <div class="card" id="p-pending" style="display:none;">
+      <h3>Solicitud en revisión</h3>
+      <p>Tu correo está confirmado. El administrador debe aprobar tu cuenta y asignarte un equipo antes de que puedas ver mensajes.</p>
+      <button class="btn-solid" onclick="handleUser(auth.currentUser)">Comprobar estado</button>
+      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
+    </div>
+
+    <!-- Rejected -->
+    <div class="card" id="p-rejected" style="display:none;">
+      <h3>Acceso no concedido</h3>
+      <p>Tu solicitud no fue aprobada o tu acceso fue retirado. Si crees que es un error, habla con el administrador de la escuela.</p>
+      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="p-dash" style="display:none;">
+      <div class="dash-head">
+        <h2>Panel del buzón</h2>
+        <button class="lock-btn" onclick="signOutStaff()">Cerrar sesión</button>
+      </div>
+      <div class="dash-sub" id="dash-sub"></div>
+      <div class="staff-tabs" id="dash-tabs"></div>
+      <div id="dash-body"></div>
+    </div>
+
+  </section>
+
+  <footer class="note">
+    Los mensajes solo pueden verlos cuentas con el correo confirmado y aprobadas por el administrador. La opción "con mi nombre" no verifica una cuenta real — es información que la persona escribe.
+  </footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCzYnrbpG8twvblwEImX9Evta4vrwAttUU",
+  authDomain: "tesr-a01bb.firebaseapp.com",
+  projectId: "tesr-a01bb",
+  storageBucket: "tesr-a01bb.firebasestorage.app",
+  messagingSenderId: "724336866992",
+  appId: "1:724336866992:web:f9a57d533812ee3f89ad75"
+};
+// Must match the email in firestore.rules
+const OWNER_EMAIL = "nonitofalu@gmail.com";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+auth.languageCode = 'es';
+const db = firebase.firestore();
+
+const CATS = ['sugerencias','problemas'];
+const CAT_LABEL = {sugerencias:'Sugerencias', problemas:'Problemas'};
+const ROLE_LABEL = {admin:'Admin', miembro:'Miembro'};
+const $ = id => document.getElementById(id);
+
+let authMode = 'login';
+let currentTab = null;
+let profile = null;
+let isOwner = false;
+
+/* ================= Public mailbox ================= */
+function toggleBox(cat){
+  const box = $('box-'+cat);
+  const isOpen = box.classList.contains('open');
+  box.classList.toggle('open', !isOpen);
+  box.querySelector('.flap').setAttribute('aria-expanded', String(!isOpen));
+}
+
+function toggleIdentity(cat){
+  const cuenta = document.querySelector(`input[name="identidad-${cat}"]:checked`).value === 'cuenta';
+  $('nick-field-'+cat).style.display = cuenta ? 'none' : 'block';
+  $('named-fields-'+cat).classList.toggle('show', cuenta);
+}
+
+async function submitEntry(evt, cat){
+  evt.preventDefault();
+  const cuenta = document.querySelector(`input[name="identidad-${cat}"]:checked`).value === 'cuenta';
+  const statusEl = $('status-'+cat);
+  const msg = $('msg-'+cat).value.trim();
+
+  let who = {};
+  if(cuenta){
+    const nombre = $('name-'+cat).value.trim();
+    const correo = $('email-'+cat).value.trim();
+    if(!nombre || !correo){
+      statusEl.textContent = 'Escribe tu nombre y correo.';
+      statusEl.classList.add('error');
+      return false;
+    }
+    who = {tipo:'cuenta', nombre, correo};
+  } else {
+    const apodo = $('nick-'+cat).value.trim() || 'Anónimo';
+    who = {tipo:'anonimo', apodo};
+  }
+  if(!msg) return false;
+
+  statusEl.textContent = 'Enviando...';
+  statusEl.classList.remove('error');
+  try{
+    await db.collection('buzon').add({
+      categoria: cat,
+      who,
+      mensaje: msg,
+      fecha: firebase.firestore.FieldValue.serverTimestamp(),
+      revisado: false
+    });
+    $('form-'+cat).style.display = 'none';
+    $('confirm-'+cat).classList.add('show');
+    statusEl.textContent = '';
+  }catch(e){
+    statusEl.textContent = 'No se pudo enviar. Intenta de nuevo.';
+    statusEl.classList.add('error');
+  }
+  return false;
+}
+
+function resetBox(cat){
+  $('form-'+cat).style.display = 'block';
+  $('confirm-'+cat).classList.remove('show');
+  ['msg-','nick-','name-','email-'].forEach(p => { const el = $(p+cat); if(el) el.value = ''; });
+}
+
+/* ================= Staff portal: auth ================= */
+function showGate(){ $('staff-area').classList.add('show'); }
+
+function showPanel(id){
+  ['p-auth','p-verify','p-pending','p-rejected','p-dash'].forEach(p => {
+    $(p).style.display = (p === id) ? 'block' : 'none';
+  });
+}
+
+function setAuthMode(mode){
+  authMode = mode;
+  const reg = mode === 'register';
+  $('mode-login').classList.toggle('active', !reg);
+  $('mode-register').classList.toggle('active', reg);
+  $('f-nombre').style.display = reg ? 'block' : 'none';
+  $('f-pass2').style.display = reg ? 'block' : 'none';
+  $('a-nombre').required = reg;
+  $('a-pass2').required = reg;
+  $('a-pass').autocomplete = reg ? 'new-password' : 'current-password';
+  $('auth-submit').textContent = reg ? 'Crear cuenta' : 'Entrar';
+  $('forgot-btn').style.display = reg ? 'none' : 'block';
+  $('auth-error').textContent = '';
+  $('auth-info').textContent = '';
+}
+
+function authErr(e){
+  const map = {
+    'auth/invalid-credential':'Correo o contraseña incorrectos.',
+    'auth/wrong-password':'Correo o contraseña incorrectos.',
+    'auth/user-not-found':'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use':'Ya existe una cuenta con ese correo. Prueba "Entrar".',
+    'auth/weak-password':'La contraseña es muy débil (mínimo 8 caracteres).',
+    'auth/invalid-email':'Ese correo no es válido.',
+    'auth/too-many-requests':'Demasiados intentos. Espera unos minutos.',
+    'auth/popup-closed-by-user':'Se cerró la ventana de Google.',
+    'auth/network-request-failed':'Sin conexión. Revisa tu internet.'
+  };
+  return map[e.code] || 'Ocurrió un error. Intenta de nuevo.';
+}
+
+async function submitAuth(evt){
+  evt.preventDefault();
+  const errEl = $('auth-error'), infoEl = $('auth-info'), btn = $('auth-submit');
+  errEl.textContent = ''; infoEl.textContent = '';
+  const email = $('a-email').value.trim();
+  const pass = $('a-pass').value;
+  btn.disabled = true;
+  try{
+    if(authMode === 'register'){
+      const nombre = $('a-nombre').value.trim();
+      if(!nombre){ errEl.textContent = 'Escribe tu nombre.'; return false; }
+      if(pass !== $('a-pass2').value){ errEl.textContent = 'Las contraseñas no coinciden.'; return false; }
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      await cred.user.updateProfile({displayName: nombre});
+      await cred.user.sendEmailVerification();
+      $('verify-info').textContent = 'Correo enviado.';
+    } else {
+      await auth.signInWithEmailAndPassword(email, pass);
+    }
+  }catch(e){
+    errEl.textContent = authErr(e);
+  }finally{
+    btn.disabled = false;
+  }
+  return false;
+}
+
+async function googleSignIn(){
+  $('auth-error').textContent = '';
+  try{
+    await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+  }catch(e){
+    $('auth-error').textContent = authErr(e);
+  }
+}
+
+async function forgotPassword(){
+  const email = $('a-email').value.trim();
+  $('auth-error').textContent = ''; $('auth-info').textContent = '';
+  if(!email){ $('auth-error').textContent = 'Escribe tu correo arriba primero.'; return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+  }catch(e){ /* don't reveal whether the account exists */ }
+  $('auth-info').textContent = 'Si ese correo tiene cuenta, te enviamos un enlace para cambiar la contraseña.';
+}
+
+async function resendVerification(){
+  const info = $('verify-info');
+  try{
+    await auth.currentUser.sendEmailVerification();
+    info.textContent = 'Correo reenviado.';
+  }catch(e){
+    info.textContent = e.code === 'auth/too-many-requests' ? 'Espera unos minutos antes de reenviar.' : 'No se pudo reenviar.';
+  }
+}
+
+async function checkVerified(){
+  const info = $('verify-info');
+  info.textContent = '';
+  try{
+    await auth.currentUser.reload();
+    if(auth.currentUser.emailVerified) handleUser(auth.currentUser);
+    else info.textContent = 'Todavía no aparece confirmado. Abre el enlace del correo e intenta de nuevo.';
+  }catch(e){ info.textContent = 'No se pudo comprobar.'; }
+}
+
+function signOutStaff(){
+  auth.signOut();
+  profile = null; isOwner = false;
+  $('dash-body').innerHTML = '';
+}
+
+auth.onAuthStateChanged(user => handleUser(user));
+
+async function handleUser(user){
+  profile = null; isOwner = false;
+  if(!user){ showPanel('p-auth'); return; }
+  showGate();
+
+  if(!user.emailVerified){
+    $('verify-email').textContent = user.email;
+    showPanel('p-verify');
+    return;
+  }
+
+  try{
+    await user.getIdToken(true); // make sure the token carries email_verified
+    isOwner = user.email === OWNER_EMAIL;
+
+    if(isOwner){
+      profile = {nombre: user.displayName || 'Administrador', estado:'aprobado', permisos:{}};
+      buildDash();
+      return;
+    }
+
+    const ref = db.collection('users').doc(user.uid);
+    let snap = await ref.get();
+    if(!snap.exists){
+      await ref.set({
+        email: user.email,
+        nombre: user.displayName || user.email.split('@')[0],
+        estado: 'pendiente',
+        permisos: {},
+        creado: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      snap = await ref.get();
+    }
+    profile = snap.data();
+  }catch(e){
+    showPanel('p-auth');
+    $('auth-error').textContent = 'No se pudo cargar tu cuenta. Intenta de nuevo.';
+    return;
+  }
+
+  if(profile.estado === 'aprobado') buildDash();
+  else if(profile.estado === 'rechazado') showPanel('p-rejected');
+  else showPanel('p-pending');
+}
+
+/* ================= Dashboard ================= */
+function roleIn(cat){
+  if(isOwner) return 'admin';
+  return (profile && profile.permisos && profile.permisos[cat]) || null;
+}
+
+function accessibleTabs(){
+  const cats = CATS.filter(c => roleIn(c));
+  return isOwner ? [...cats, 'cuentas'] : cats;
+}
+
+function buildDash(){
+  showPanel('p-dash');
+  const label = isOwner ? 'Dueño' : 'Equipo';
+  $('dash-sub').textContent = `${profile.nombre} · ${label}`;
+  const tabs = accessibleTabs();
+  if(tabs.length === 0){
+    $('dash-tabs').innerHTML = '';
+    $('dash-body').innerHTML = '<div class="empty-note">Tu cuenta está aprobada pero todavía no tiene categorías asignadas.</div>';
+    return;
+  }
+  switchTab(tabs.includes(currentTab) ? currentTab : tabs[0]);
+}
+
+async function switchTab(tab){
+  currentTab = tab;
+  const tabs = accessibleTabs();
+  let pending = 0;
+  if(isOwner){
+    try{
+      const s = await db.collection('users').where('estado','==','pendiente').get();
+      pending = s.docs.filter(d => d.data().email !== OWNER_EMAIL).length;
+    }catch(e){}
+  }
+  $('dash-tabs').innerHTML = tabs.map(t => {
+    const name = t === 'cuentas' ? 'Cuentas' : CAT_LABEL[t];
+    const badge = (t === 'cuentas' && pending) ? `<span class="badge-count">${pending}</span>` : '';
+    return `<button class="${t===tab?'active':''} t-${t}" onclick="switchTab('${t}')">${name}${badge}</button>`;
+  }).join('');
+  if(tab === 'cuentas') loadAccounts(); else loadEntries();
+}
+
+async function loadEntries(){
+  const body = $('dash-body');
+  const cat = currentTab;
+  body.innerHTML = '<div class="empty-note">Cargando...</div>';
+  let list = [];
+  try{
+    const snap = await db.collection('buzon').where('categoria','==',cat).get();
+    list = snap.docs.map(d => ({id:d.id, ...d.data()}));
+  }catch(e){
+    body.innerHTML = '<div class="empty-note">No se pudieron cargar los mensajes.</div>';
+    return;
+  }
+  if(list.length === 0){
+    body.innerHTML = '<div class="empty-note">Todavía no hay mensajes aquí.</div>';
+    return;
+  }
+  list.sort((a,b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0));
+  const canDelete = roleIn(cat) === 'admin';
+
+  body.innerHTML = list.map(entry => {
+    const who = entry.who.tipo === 'cuenta'
+      ? `${escapeHtml(entry.who.nombre)} · ${escapeHtml(entry.who.correo)}`
+      : `Anónimo · ${escapeHtml(entry.who.apodo)}`;
+    const fecha = entry.fecha?.toDate ? entry.fecha.toDate().toLocaleString('es-PR',{dateStyle:'medium',timeStyle:'short'}) : 'Justo ahora';
+    return `
+      <div class="entry ${entry.revisado ? 'reviewed' : ''}">
+        <div class="meta"><span class="who">${who}</span><span>${fecha}</span></div>
+        <p class="msg">${escapeHtml(entry.mensaje)}</p>
+        <div class="row-actions">
+          <label><input type="checkbox" ${entry.revisado?'checked':''} onchange="toggleReviewed('${entry.id}', this.checked)"> Revisado</label>
+          ${canDelete ? `<button class="mini danger" onclick="deleteEntry('${entry.id}')">Eliminar</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function toggleReviewed(id, checked){
+  try{
+    await db.collection('buzon').doc(id).update({revisado: checked});
+    loadEntries();
+  }catch(e){ alert('No tienes permiso para hacer eso.'); }
+}
+
+async function deleteEntry(id){
+  if(!confirm('¿Eliminar este mensaje? No se puede deshacer.')) return;
+  try{
+    await db.collection('buzon').doc(id).delete();
+    loadEntries();
+  }catch(e){ alert('No tienes permiso para eliminar.'); }
+}
+
+/* ================= Owner: accounts ================= */
+function roleSelect(uid, cat, val){
+  return `
+    <div>
+      <label for="r-${uid}-${cat}">${CAT_LABEL[cat]}</label>
+      <select id="r-${uid}-${cat}">
+        <option value="" ${!val?'selected':''}>Sin acceso</option>
+        <option value="miembro" ${val==='miembro'?'selected':''}>Miembro (ver y revisar)</option>
+        <option value="admin" ${val==='admin'?'selected':''}>Admin (+ eliminar)</option>
+      </select>
+    </div>`;
+}
+
+function accountCard(u, kind){
+  const fecha = u.creado?.toDate ? u.creado.toDate().toLocaleDateString('es-PR',{dateStyle:'medium'}) : '';
+  const grid = `<div class="role-grid">${CATS.map(c => roleSelect(u.id, c, u.permisos?.[c])).join('')}</div>`;
+  let actions = '';
+  if(kind === 'pendiente'){
+    actions = `<button class="mini ok" onclick="approveUser('${u.id}')">Aprobar</button>
+               <button class="mini danger" onclick="rejectUser('${u.id}')">Rechazar</button>`;
+  } else if(kind === 'aprobado'){
+    actions = `<button class="mini ok" onclick="saveRoles('${u.id}')">Guardar cambios</button>
+               <button class="mini danger" onclick="rejectUser('${u.id}')">Retirar acceso</button>`;
+  } else {
+    actions = `<button class="mini" onclick="reconsiderUser('${u.id}')">Volver a pendiente</button>`;
+  }
+  return `
+    <div class="entry">
+      <div class="meta"><span class="who">${escapeHtml(u.nombre||'')} · ${escapeHtml(u.email||'')}</span><span>${fecha}</span></div>
+      ${kind === 'rechazado' ? '' : grid}
+      <div class="btn-row">${actions}</div>
+    </div>`;
+}
+
+async function loadAccounts(){
+  const body = $('dash-body');
+  body.innerHTML = '<div class="empty-note">Cargando...</div>';
+  let users = [];
+  try{
+    const snap = await db.collection('users').get();
+    users = snap.docs.map(d => ({id:d.id, ...d.data()})).filter(u => u.email !== OWNER_EMAIL);
+  }catch(e){
+    body.innerHTML = '<div class="empty-note">No se pudieron cargar las cuentas.</div>';
+    return;
+  }
+  const by = s => users.filter(u => u.estado === s);
+  const section = (title, arr, kind) => `
+    <div class="section-title">${title} (${arr.length})</div>
+    ${arr.length ? arr.map(u => accountCard(u, kind)).join('') : '<div class="empty-note">Nada aquí.</div>'}`;
+
+  body.innerHTML =
+    section('Solicitudes pendientes', by('pendiente'), 'pendiente') +
+    section('Equipo aprobado', by('aprobado'), 'aprobado') +
+    section('Rechazadas / retiradas', by('rechazado'), 'rechazado');
+}
+
+function readRoles(uid){
+  const permisos = {};
+  CATS.forEach(c => {
+    const v = $(`r-${uid}-${c}`).value;
+    if(v) permisos[c] = v;
+  });
+  return permisos;
+}
+
+async function approveUser(uid){
+  const permisos = readRoles(uid);
+  if(Object.keys(permisos).length === 0){
+    alert('Elige al menos una categoría y un rol antes de aprobar.');
+    return;
+  }
+  await updateUser(uid, {estado:'aprobado', permisos});
+}
+async function saveRoles(uid){
+  const permisos = readRoles(uid);
+  if(Object.keys(permisos).length === 0){
+    alert('Sin categorías no tiene sentido. Usa "Retirar acceso" si quieres sacarlo del equipo.');
+    return;
+  }
+  await updateUser(uid, {permisos});
+}
+async function rejectUser(uid){
+  if(!confirm('¿Seguro? Esta persona perderá el acceso.')) return;
+  await updateUser(uid, {estado:'rechazado', permisos:{}});
+}
+async function reconsiderUser(uid){
+  await updateUser(uid, {estado:'pendiente', permisos:{}});
+}
+async function updateUser(uid, data){
+  try{
+    await db.collection('users').doc(uid).update(data);
+    switchTab('cuentas');
+  }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : String(str);
+  return d.innerHTML;
+}
+
+setAuthMode('login');
+</script>
+</body>
+</html>
