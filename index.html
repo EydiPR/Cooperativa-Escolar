@@ -203,45 +203,7 @@ footer.note{text-align:center;font-size:.75rem;color:var(--ink-soft);border-top:
   <div class="staff-toggle" id="staff-toggle">
     <a href="admin.html">Acceso del personal escolar</a>
   </div>
-
-    <!-- Verify email -->
-    <div class="card" id="p-verify" style="display:none;">
-      <h3>Confirma tu correo</h3>
-      <p>Enviamos un enlace de confirmación a <strong id="verify-email"></strong>. Ábrelo y luego vuelve aquí. Revisa también la carpeta de spam.</p>
-      <button class="btn-solid" onclick="checkVerified()">Ya lo confirmé</button>
-      <button class="btn-ghost" onclick="resendVerification()">Reenviar correo</button>
-      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
-      <div class="status-msg" id="verify-info" style="margin-top:10px;"></div>
-    </div>
-
-    <!-- Pending -->
-    <div class="card" id="p-pending" style="display:none;">
-      <h3>Solicitud en revisión</h3>
-      <p>Tu correo está confirmado. El administrador debe aprobar tu cuenta y asignarte un equipo antes de que puedas ver mensajes.</p>
-      <button class="btn-solid" onclick="handleUser(auth.currentUser)">Comprobar estado</button>
-      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
-    </div>
-
-    <!-- Rejected -->
-    <div class="card" id="p-rejected" style="display:none;">
-      <h3>Acceso no concedido</h3>
-      <p>Tu solicitud no fue aprobada o tu acceso fue retirado. Si crees que es un error, habla con el administrador de la escuela.</p>
-      <button class="linkish" onclick="signOutStaff()">Cerrar sesión</button>
-    </div>
-
-    <!-- Dashboard -->
-    <div id="p-dash" style="display:none;">
-      <div class="dash-head">
-        <h2>Panel del buzón</h2>
-        <button class="lock-btn" onclick="signOutStaff()">Cerrar sesión</button>
-      </div>
-      <div class="dash-sub" id="dash-sub"></div>
-      <div class="staff-tabs" id="dash-tabs"></div>
-      <div id="dash-body"></div>
-    </div>
-
-  </section>
-
+  
   <footer class="note">
     Los mensajes solo pueden verlos cuentas con el correo confirmado y aprobadas por el administrador. La opción "con mi nombre" no verifica una cuenta real — es información que la persona escribe.
   </footer>
